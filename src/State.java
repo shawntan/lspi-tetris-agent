@@ -1,8 +1,4 @@
 import java.awt.Color;
-
-
-
-
 public class State {
 	public static final int COLS = 10;
 	public static final int ROWS = 21;
