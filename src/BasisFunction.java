@@ -1,13 +1,12 @@
-import java.util.Arrays;
-
 public class BasisFunction {
-	final private static double DISCOUNT = 1;
+	final private static double DISCOUNT = 0.9;
 
 	private static int count = 0;	
 	//feature list
 	final private static int ROWS_COMPLETED 		= count++;
 	final private static int DIFF_ROWS_COMPLETED	= count++;
 	final private static int MAX_HEIGHT				= count++;
+	//final private static int MIN_HEIGHT				= count++;
 	final private static int DIFF_MAX_HEIGHT		= count++;
 	final private static int AVG_HEIGHT				= count++;
 	final private static int DIFF_AVG_HEIGHT		= count++;
@@ -15,15 +14,18 @@ public class BasisFunction {
 	final private static int DIFF_SUM_ADJ_DIFF		= count++;
 	final private static int COVERED_GAPS			= count++;
 	final private static int DIFF_COVERED_GAPS		= count++;
-	final private static int NEXT_MOVE_LOSE			= count++;
+	
+	//final private static int NEXT_MOVE_LOSE			= count++;
 
 	final public static int FEATURE_COUNT = count;
 	static double[] weight = new double[FEATURE_COUNT];
 	static {
+
 		//initial weights
 		weight[ROWS_COMPLETED]		=	2;
 		weight[DIFF_ROWS_COMPLETED] =	2;
 		weight[MAX_HEIGHT]			=	0;
+		//weight[MIN_HEIGHT]			=	0;
 		weight[DIFF_MAX_HEIGHT]		=	-2;
 		weight[AVG_HEIGHT]			=	0;
 		weight[DIFF_AVG_HEIGHT]		=	-1;
@@ -31,28 +33,33 @@ public class BasisFunction {
 		weight[DIFF_SUM_ADJ_DIFF]	=	-2;
 		weight[COVERED_GAPS]		=	0;
 		weight[DIFF_COVERED_GAPS]	=	-4;
-		weight[NEXT_MOVE_LOSE]		=	-10;
+
+		//weight[NEXT_MOVE_LOSE]		=	-10;
+
+		weight = new double[] {
+				2.43837989469314E-5, 8.961595503848667, 0.015925823093283387, -0.01682357361806941, 0.4248430008970081, 8.00288696739108, -0.08465044114870991, -0.003900189826416073, -0.3660016454753236, -0.8824617779319843		};
+
 	}
 
 
 	private static double[] features = new double[FEATURE_COUNT]; 
-	private static double[] future = new double[FEATURE_COUNT];
+	private static double[] past = new double[FEATURE_COUNT];
 
 
 	public static double[] getFeatureArray(State s, FutureState fs) {
 		//simple features
-		features[ROWS_COMPLETED] = s.getRowsCleared();
-		features[DIFF_ROWS_COMPLETED] = fs.getRowsCleared()-features[ROWS_COMPLETED];
+		features[ROWS_COMPLETED] = fs.getRowsCleared();
+		features[DIFF_ROWS_COMPLETED] = fs.getRowsCleared()- s.getRowsCleared();
 
 		//compute height features
-		heightFeatures(s, features);
-		heightFeatures(fs, future);
+		heightFeatures(s, past);
+		heightFeatures(fs, features);
 
-		features[DIFF_MAX_HEIGHT] = future[MAX_HEIGHT]-features[MAX_HEIGHT];
-		features[DIFF_AVG_HEIGHT] = future[AVG_HEIGHT]-features[AVG_HEIGHT];
-		features[DIFF_SUM_ADJ_DIFF] = future[SUM_ADJ_DIFF]-features[SUM_ADJ_DIFF];
-		features[DIFF_COVERED_GAPS] = future[COVERED_GAPS]-features[COVERED_GAPS];
-		features[NEXT_MOVE_LOSE] = fs.hasLost()?1:0;
+		features[DIFF_MAX_HEIGHT] = 	features[MAX_HEIGHT]-past[MAX_HEIGHT];
+		features[DIFF_AVG_HEIGHT] = 	features[AVG_HEIGHT]-past[AVG_HEIGHT];
+		features[DIFF_SUM_ADJ_DIFF] = 	features[SUM_ADJ_DIFF]-past[SUM_ADJ_DIFF];
+		features[DIFF_COVERED_GAPS] =	features[COVERED_GAPS]-past[COVERED_GAPS];
+		//features[NEXT_MOVE_LOSE] = fs.hasLost()?1:0;
 
 		return features;
 	}
@@ -60,6 +67,8 @@ public class BasisFunction {
 	public static void heightFeatures(State s,double[] vals) {
 		//max height
 		int maxHeight = -1;
+		//min height
+		int minHeight = Integer.MAX_VALUE;
 		//avg height
 		int total = 0;
 		//adjacent col height
@@ -73,7 +82,8 @@ public class BasisFunction {
 			int i=field.length-1;
 			while(i>=0 && field[i][j]==0) i--; //go down the column till first element found
 			int height = i+1;
-			if(maxHeight<i) maxHeight = height;
+			if(maxHeight<height) maxHeight = height;
+			if(minHeight>height) minHeight = height;
 			total += height;
 			if(j>0) diffTotal += Math.abs((height)-prev);
 			prev = height;
@@ -83,55 +93,50 @@ public class BasisFunction {
 				i--;
 			}
 		}
+		
 		vals[MAX_HEIGHT] = maxHeight;
 		vals[AVG_HEIGHT] = total/(double)field[0].length;
 		vals[SUM_ADJ_DIFF] = diffTotal;
 		vals[COVERED_GAPS] = coveredGaps;
 	}
 
+	public static double[][] A = new double[FEATURE_COUNT][FEATURE_COUNT];
+	public static double[][] b = new double[FEATURE_COUNT][1];
 
-	private static double[][] featureProduct = new double[FEATURE_COUNT][FEATURE_COUNT];
+	private static double[][] tmpA = new double[FEATURE_COUNT][FEATURE_COUNT];
+	private static double[][] mWeight = new double[FEATURE_COUNT][1];
+	private static double[][] mFeatures = new double[FEATURE_COUNT][1];
+	private static double[][] mFutureFeatures = new double[1][FEATURE_COUNT];
+	private static double[][] mRowFeatures = new double[1][FEATURE_COUNT];
+	private static double[][] changeToA = new double[FEATURE_COUNT][FEATURE_COUNT];
+	private static int prevRowsCompleted = 0;
 
-	private static double[][] A = new double[FEATURE_COUNT][FEATURE_COUNT];
-	private static double[][] tmp = new double[FEATURE_COUNT][FEATURE_COUNT];
-	private static double[][] aInverse = new double[FEATURE_COUNT][FEATURE_COUNT];
+	public static void updateMatrices(State s,double[] features,double[] futureFeatures) {
+		//preprocessing
+		Matrix.arrayToCol(features, mFeatures);
+		Matrix.arrayToRow(futureFeatures, mFutureFeatures);
+		Matrix.arrayToRow(features, mRowFeatures);
 
-	private static double[] b = new double[FEATURE_COUNT];
 
-	private static double[] tmpF = new double[FEATURE_COUNT];
-	private static double[] tmpPF = new double[FEATURE_COUNT];
-	public static void updateWeights(double[] prevFeatures,double[] features) {
-		System.arraycopy(features, 0,tmpF,0,FEATURE_COUNT);
-		System.arraycopy(prevFeatures, 0,tmpPF,0,FEATURE_COUNT);
-		System.out.println("f:\t\t"+Arrays.toString(features));
-		System.out.println("pf:\t\t"+Arrays.toString(prevFeatures));
-		System.out.println("--------------------------------------");
-
-		System.out.println("pf:\t\t"+Arrays.toString(tmpPF));
-		Matrix.multiply(-1*DISCOUNT,tmpF);
-		System.out.println("df:\t\t"+Arrays.toString(tmpF));
-		Matrix.sum(tmpPF,tmpF);
-		System.out.println("delta phi:\t"+Arrays.toString(tmpPF));
-		Matrix.product(prevFeatures,tmpPF,featureProduct);
-		System.out.println("delta A:");
-		printField(featureProduct);
-		Matrix.sum(A, featureProduct);
-		System.arraycopy(prevFeatures, 0,tmpPF,0,FEATURE_COUNT);
-		Matrix.sum(b, Matrix.multiply(prevFeatures[DIFF_ROWS_COMPLETED], tmpPF));
-		System.out.println("b:\t"+Arrays.toString(b));
-		
-		if(Matrix.inverse(A,aInverse,tmp)==null) return;
-		else {
-			System.out.println("A-1:");
-			printField(aInverse);
-			Matrix.product(aInverse, b, weight); 
-
-			System.out.println(Arrays.toString(weight));
-		}
+		Matrix.multiply(-1*DISCOUNT, mFutureFeatures);
+		Matrix.sum(mRowFeatures, mFutureFeatures);
+		Matrix.product(mFeatures,mRowFeatures,changeToA);
+		Matrix.sum(A,changeToA);
+		Matrix.multiply(features[DIFF_ROWS_COMPLETED], mFeatures);
+		Matrix.sum(b,mFeatures);
+		/*
+		System.out.println("A:");
+		printField(A);
+		System.out.println("b:");
+		 */
+	}
+	public static void computeWeights() {
+		if(Matrix.premultiplyInverse(A, b,mWeight, tmpA)==null) return;;
+		Matrix.colToArray(mWeight, weight);
 	}
 
 
-	private static void printField(double[][] field){
+	public static void printField(double[][] field){
 		for(int i=0;i<field.length;i++) {
 			for(int j=0;j<field[0].length;j++){
 				System.out.print(" "+field[i][j]);

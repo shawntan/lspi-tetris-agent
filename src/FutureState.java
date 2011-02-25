@@ -73,12 +73,16 @@ public class FutureState extends State {
 		{{2,2,1},{2,3}}
 	};
 
+
 	public int[][] getField() {
 		return field;
 	}
 
 	public int getNextPiece() {
 		return nextPiece;
+	}
+	public void setNextPiece() {
+		nextPiece = (int)(Math.random()*State.N_PIECES);
 	}
 
 	public boolean hasLost() {
@@ -106,10 +110,7 @@ public class FutureState extends State {
 		}
 	}
 
-	//random integer, returns 0-6
-	private int randomPiece() {
-		return 0;
-	}
+
 
 	//gives legal moves for 
 	public int[][] legalMoves() {

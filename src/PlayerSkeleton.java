@@ -1,4 +1,5 @@
 import java.text.DecimalFormat;
+import java.util.Arrays;
 
 
 
@@ -8,48 +9,42 @@ public class PlayerSkeleton {
 
 	private FutureState fs;
 	private DecimalFormat formatter = new DecimalFormat("#00");
-	private boolean firstMove = true;
+	
+	private double[] feature = new double[BasisFunction.FEATURE_COUNT];
+	private double[] past = null;
+	
 	public int pickMove(State s, int[][] legalMoves) {
 		if(fs==null) fs = new FutureState();
 		fs.resetToCurrentState(s);
+		int maxMove = pickBestMove(s, legalMoves, feature);
+		//simulate next step
+		if(past == null) past = new double[BasisFunction.FEATURE_COUNT]; 
+		else BasisFunction.updateMatrices(s, past, feature);
+		double[] tmp = feature;
+		feature = past;
+		past = tmp;
+		return maxMove;
+	}
+	
+	public int pickBestMove(State s, int[][] legalMoves, double[] feature){
 		double score;
 		double maxScore = Double.NEGATIVE_INFINITY;
 		int maxMove = -1;
 		for(int m = 0;m<legalMoves.length;m++){
 			fs.makeMove(m);
-			/*
-			System.out.println("---------------");
-			printField(fs.getField());
-			System.out.println("---------------");
-			 */
 			double[] f = BasisFunction.getFeatureArray(s, fs);
 			score = score(f);
 			if(maxScore < score) {
 				maxScore = score;
 				maxMove = m;
-				System.arraycopy(f,0,features,0,f.length);
+				System.arraycopy(f,0,feature,0,f.length);
 			}
-			//System.out.println(maxScore);
 			fs.resetToCurrentState(s);
 		}
-		if(firstMove){
-			firstMove = false;
-			swapFArrays();
-		}
-		else updateWeights();
 		return maxMove;
 	}
-	private double[] prevFeatures = new double[BasisFunction.FEATURE_COUNT];
-	private double[] features = new double[BasisFunction.FEATURE_COUNT];
-	private void swapFArrays() {
-		double[] tmp = prevFeatures;
-		prevFeatures = features;
-		features = tmp;
-	}
-	private void updateWeights(){
-		BasisFunction.updateWeights(prevFeatures, features);
-		swapFArrays();
-	}
+
+	
 	private double score(double[] features){
 		//System.out.println(Arrays.toString(features));
 		double total=0;
@@ -69,25 +64,30 @@ public class PlayerSkeleton {
 	}
 
 	public static void main(String[] args) {
-		
-		for(int i=0;i<1;i++){
+		PlayerSkeleton p = new PlayerSkeleton();
+		/*
+		for(int i=0;i<11000;i++){
 			State s = new State();
-			TFrame t = new TFrame(s);
-			PlayerSkeleton p = new PlayerSkeleton();
-			while(!s.hasLost()) {
-				s.makeMove(p.pickMove(s,s.legalMoves()));
-				s.draw();
-				s.drawNext(0,0);
-				try {
-					Thread.sleep(300);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+			while(!s.hasLost())s.makeMove(p.pickMove(s,s.legalMoves()));
+			count++;
+		}*/
+		System.out.println(Arrays.toString(BasisFunction.weight));
+		State s = new State();
+		TFrame t = new TFrame(s);
+		
+		while(!s.hasLost()) {
+			s.makeMove(p.pickMove(s,s.legalMoves()));
+			s.draw();
+			s.drawNext(0,0);
+			try {
+				Thread.sleep(300);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
-			System.out.println("You have completed "+s.getRowsCleared()+" rows.");
-			//t.dispose();
-			//t.setVisible(false);
+			//BasisFunction.computeWeights();
 		}
+		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+		
 	}
 
 }
