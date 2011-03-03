@@ -104,7 +104,7 @@ public class BasisFunction {
 			int i=field.length-1;
 			int wellDepth = 0;
 			while(i>=0 && field[i][j]==0) {
-				if(		(j==0				||field[i][j-1]!=0) && 
+				if(		(j==0				 ||field[i][j-1]!=0) && 
 						(j==field[0].length-1||field[i][j+1]!=0)) wellDepth++; 
 				i--;
 			} //go down the column till first element found
@@ -154,7 +154,7 @@ public class BasisFunction {
 		Matrix.sum(mRowFeatures, mFutureFeatures);
 		Matrix.product(mFeatures,mRowFeatures,changeToA);
 		Matrix.sum(A,changeToA);
-		Matrix.multiply(features[DIFF_ROWS_COMPLETED], mFeatures);
+		Matrix.multiply(s.getRowsCleared(), mFeatures);
 		
 		Matrix.sum(b,mFeatures);
 		/*
