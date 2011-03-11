@@ -1,4 +1,8 @@
 import java.awt.Color;
+
+
+
+
 public class State {
 	public static final int COLS = 10;
 	public static final int ROWS = 21;
@@ -110,7 +114,32 @@ public class State {
 	public int[][] getField() {
 		return field;
 	}
-	
+
+	public int[] getTop() {
+		return top;
+	}
+
+    public static int[] getpOrients() {
+        return pOrients;
+    }
+    
+    public static int[][] getpWidth() {
+        return pWidth;
+    }
+
+    public static int[][] getpHeight() {
+        return pHeight;
+    }
+
+    public static int[][] getpBottom() {
+        return pWidth;
+    }
+
+    public static int[][][] getpTop() {
+        return pTop;
+    }
+
+
 	public int getNextPiece() {
 		return nextPiece;
 	}
