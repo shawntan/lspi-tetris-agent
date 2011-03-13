@@ -1,88 +1,34 @@
 import java.util.Arrays;
 
-public class FutureState extends State {
-	public static final int COLS = 10;
-	public static final int ROWS = 21;
-	public static final int N_PIECES = 7;
+public class FutureState extends State{
 
-	public boolean lost = false;
+	private int[][][] pBottom = State.getpBottom();
+	private int[][] pHeight = State.getpHeight();
+	private int[][][] pTop = State.getpTop();
 
-	//current turn
 	private int turn = 0;
 	private int cleared = 0;
 
-	//each square in the grid - int means empty - other values mean the turn it was placed
 	private int[][] field = new int[ROWS][COLS];
-	//top row+1 of each column
-	//0 means empty
 	private int[] top = new int[COLS];
 
-
-	//number of next piece
 	protected int nextPiece;
-
-
-
-	//all legal moves - first index is piece type - then a list of 2-length arrays
-	protected static int[][][] legalMoves = State.legalMoves;
-
-	//indices for legalMoves
-	public static final int ORIENT = 0;
-	public static final int SLOT = 1;
-
-	//possible orientations for a given piece type
-	protected static int[] pOrients = {1,2,4,4,4,2,2};
-
-	//the next several arrays define the piece vocabulary in detail
-	//width of the pieces [piece ID][orientation]
-	protected static int[][] pWidth = {
-		{2},
-		{1,4},
-		{2,3,2,3},
-		{2,3,2,3},
-		{2,3,2,3},
-		{3,2},
-		{3,2}
-	};
-	//height of the pieces [piece ID][orientation]
-	private static int[][] pHeight = {
-		{2},
-		{4,1},
-		{3,2,3,2},
-		{3,2,3,2},
-		{3,2,3,2},
-		{2,3},
-		{2,3}
-	};
-	private static int[][][] pBottom = {
-		{{0,0}},
-		{{0},{0,0,0,0}},
-		{{0,0},{0,1,1},{2,0},{0,0,0}},
-		{{0,0},{0,0,0},{0,2},{1,1,0}},
-		{{0,1},{1,0,1},{1,0},{0,0,0}},
-		{{0,0,1},{1,0}},
-		{{1,0,0},{0,1}}
-	};
-	private static int[][][] pTop = {
-		{{2,2}},
-		{{4},{1,1,1,1}},
-		{{3,1},{2,2,2},{3,3},{1,1,2}},
-		{{1,3},{2,1,1},{3,3},{2,2,2}},
-		{{3,2},{2,2,2},{2,3},{1,2,1}},
-		{{1,2,2},{3,2}},
-		{{2,2,1},{2,3}}
-	};
 
 
 	public int[][] getField() {
 		return field;
 	}
 
+	public int[] getTop() {
+		return top;
+	}
+
+
 	public int getNextPiece() {
 		return nextPiece;
 	}
-	public void setNextPiece() {
-		nextPiece = (int)(Math.random()*State.N_PIECES);
+	public void setNextPiece(int nextPiece){
+		this.nextPiece = nextPiece;
 	}
 
 	public boolean hasLost() {
@@ -96,8 +42,7 @@ public class FutureState extends State {
 	public int getTurnNumber() {
 		return turn;
 	}
-
-	public void resetToCurrentState(State s){
+	void resetToCurrentState(State s) {
 		int[][] field = s.getField();
 		this.nextPiece = s.getNextPiece();
 		this.lost = s.hasLost();
@@ -109,9 +54,6 @@ public class FutureState extends State {
 			for(int j=0;j<top.length;j++) if(top[j]==0 && field[i][j]>0) top[j]=i+1;
 		}
 	}
-
-
-
 	//gives legal moves for 
 	public int[][] legalMoves() {
 		return legalMoves[nextPiece];
@@ -126,12 +68,11 @@ public class FutureState extends State {
 	public void makeMove(int[] move) {
 		makeMove(move[ORIENT],move[SLOT]);
 	}
-
 	//returns false if you lose - true otherwise
 	public boolean makeMove(int orient, int slot) {
 		turn++;
 		//height if the first column makes contact
-		int height = top[slot]-pBottom[nextPiece][orient][0];
+		int height = top[slot] - pBottom[nextPiece][orient][0];
 		//for each column beyond the first in the piece
 		for(int c = 1; c < pWidth[nextPiece][orient];c++) {
 			height = Math.max(height,top[slot+c]-pBottom[nextPiece][orient][c]);
@@ -187,9 +128,12 @@ public class FutureState extends State {
 				}
 			}
 		}
-
-
-		//pick a new piece
 		return true;
 	}
+
+
+
+
 }
+
+
