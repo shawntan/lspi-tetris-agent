@@ -61,7 +61,7 @@ public class PlayerSkeleton {
 
 		while(m != init){
 			fs.makeMove(m);
-			//if(!fs.hasLost()) {
+			if(!fs.hasLost()) {
 			double[] f = bs.getFeatureArray(s, fs,legalMoves[m]);
 			score = score(f);// + minMoveScores(fs,s2,maxScore)/State.N_PIECES;
 			if(maxScore < score) {
@@ -69,7 +69,7 @@ public class PlayerSkeleton {
 				maxMove = m;
 				if(learns) System.arraycopy(f,0,feature,0,f.length);
 			}
-			//}
+			}
 			fs.resetToCurrentState(s);
 			m = (m+1)%d;
 		}

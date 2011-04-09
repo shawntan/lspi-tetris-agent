@@ -23,18 +23,19 @@ public class BasisFunction {
 	final private static int MAX_MIN_DIFF			= count++;
 	final private static int SUM_ADJ_DIFF			= count++;
 	final private static int SUM_ADJ_DIFF_SQUARED	= count++;	//(sum of the difference between adjacent columns)^2
-	//final private static int DIFF_SUM_ADJ_DIFF		= count++;
 	final private static int COVERED_GAPS			= count++;	//holes in the tetris wall which are inaccessible from the top
 	final private static int DIFF_COVERED_GAPS		= count++;
 	final private static int TOTAL_BLOCKS			= count++;	//total number of blocks in the wall
 	final private static int TOTAL_WELL_DEPTH		= count++;	//total depth of all wells on the tetris wall.
-	//final private static int DIFF_TOTAL_WELL_DEPTH	= count++;
 	final private static int MAX_WELL_DEPTH			= count++;	//maximum well depth
 	final private static int WEIGHTED_WELL_DEPTH	= count++;	//the deeper the well is, the heavier the "weightage".
 	final private static int COL_TRANS				= count++;
 	final private static int ROW_TRANS				= count++;
 	final private static int LANDING_HEIGHT			= count++;
 	final private static int COL_STD_DEV			= count++;
+	final private static int CENTER_DEV				= count++;
+	final private static int ERODED_PIECE_CELLS		= count++;
+	final private static int WEIGHTED_ERODED_PIECE_CELLS= count++;
 	final public static int FEATURE_COUNT = count;
 	
 
@@ -54,24 +55,28 @@ public class BasisFunction {
 	
 
 	{
-		weight = new double[] {
-				20.365595159663933,
-				-0.5513426238021617,
-				19.360092840383892,
-				0.03233635671269999,
-				2.791222734315266E-4,
-				-0.007696869703473128,
-				-0.6625866116628267,
-				-1.9328217438428241,
-				0.14803813444779715,
-				-3.687534196914512E-4,
-				0.06031213793299697,
-				-0.07677706004648191,
-				0.011717182400593834,
-				0.1481492356746442,
-				-0.00308693137944489,
-				-0.10625989810436655
-};
+	/*	weight = new double[] {
+	20.578266869033975,
+	-1.9961708316702538,
+	19.574318704724078,
+	0.034957834976101165,
+	-0.03163332598052833,
+	2.3203163588352842E-4,
+	-0.5363685563885567,
+	-1.9514805749833875,
+	0.29285856962669254,
+	0.013904491691460229,
+	0.048574877444784864,
+	-0.07528745119550233,
+	0.012592014254003208,
+	0.23008383517333306,
+	-0.0017813203564721663,
+	-0.09573483848959048,
+	0.0013692744123832703,
+	2.2480970728764595E-4,
+	9.129958079504793E-4
+
+		};*/
 		/*
 		weight[DIFF_ROWS_COMPLETED] = 20;
 		weight[AVG_HEIGHT]=-2;
@@ -89,6 +94,16 @@ public class BasisFunction {
 		weight[LANDING_HEIGHT]=-0.1;
 		weight[COL_STD_DEV]=-0.1;
 		*/
+		/*Pierre Dellacherie*/
+		
+		weight[LANDING_HEIGHT] = -1;
+		weight[ROW_TRANS] = -1;
+		weight[COL_TRANS] = -1;
+		weight[COVERED_GAPS] = -4;
+		weight[WEIGHTED_WELL_DEPTH] = -1;
+		weight[WEIGHTED_ERODED_PIECE_CELLS] = 1;
+		weight[CENTER_DEV] = 0.5;
+		
 		
 	}
 
@@ -96,7 +111,6 @@ public class BasisFunction {
 
 	private double[] features = new double[FEATURE_COUNT]; 
 	private double[] past = new double[FEATURE_COUNT];
-
 
 	/**
 	 * Function to get feature array for current state.
@@ -106,15 +120,19 @@ public class BasisFunction {
 		//features[ROWS_COMPLETED] = fs.getRowsCleared();
 		features[DIFF_ROWS_COMPLETED] = fs.getRowsCleared()- s.getRowsCleared();
 		//compute height features
-		heightFeatures(s, past);
-		heightFeatures(fs, features);
+		int currentTurn = s.getTurnNumber();
+		int currentPiece = s.getNextPiece();
+		heightFeatures(s, past,currentPiece,currentTurn);
+		heightFeatures(fs, features,currentPiece,currentTurn);
 		//System.out.println(Arrays.toString(past));
 		//features[DIFF_MAX_HEIGHT] = 	features[MAX_HEIGHT]-past[MAX_HEIGHT];
 		features[DIFF_AVG_HEIGHT] = 	features[AVG_HEIGHT] - past[AVG_HEIGHT];
 		//features[DIFF_SUM_ADJ_DIFF] = 	features[SUM_ADJ_DIFF]-past[SUM_ADJ_DIFF];
 		features[DIFF_COVERED_GAPS] =	features[COVERED_GAPS]-past[COVERED_GAPS];
 		//features[DIFF_TOTAL_WELL_DEPTH] =	features[TOTAL_WELL_DEPTH]-past[TOTAL_WELL_DEPTH];
-		features[LANDING_HEIGHT] = fs.getTop()[move[State.SLOT]];
+		features[LANDING_HEIGHT] = fs.getTop()[move[State.SLOT]]+(State.getpHeight()[currentPiece][move[State.ORIENT]]/2.0);
+		features[CENTER_DEV] = Math.abs(move[State.SLOT] - State.COLS/2.0);
+		features[WEIGHTED_ERODED_PIECE_CELLS] = (fs.getRowsCleared()- s.getRowsCleared())*features[ERODED_PIECE_CELLS];
 
 		return features;
 	}
@@ -127,7 +145,7 @@ public class BasisFunction {
 	 * @param s
 	 * @param vals
 	 */
-	public void heightFeatures(State s,double[] vals) {
+	public void heightFeatures(State s,double[] vals,int currentPiece,int currentTurn) {
 		int[][] field = s.getField();
 		int[] top = s.getTop();
 		int c = State.COLS-1;
@@ -143,14 +161,17 @@ public class BasisFunction {
 			coveredGaps=0,
 			totalBlocks=0,
 			colTrans = 0,
-			rowTrans = 0;
+			rowTrans = 0,
+			currentPieceCells = 0;
 		for(int j=0;j<field[0].length;j++){ //by column
 			total += top[j];
 			totalHeightSquared += Math.pow(top[j], 2);
+			
 			diffTotal += (j>0)?top[j-1]-top[j]:0;
-			squaredDiffTotal += (j>0)?Math.pow(top[j-1]-top[j],2):0;
+			squaredDiffTotal += (j>0)?Math.pow(top[j-1],2)-Math.pow(top[j],2):0;
 			maxHeight = Math.max(maxHeight,top[j]);
 			minHeight = Math.min(minHeight,top[j]);
+			
 			if((j==0||top[j-1]>top[j]) && (j==c||top[j+1]>top[j])) {
 				int wellDepth = (j==0)?top[j+1]-top[j]: (
 									(j==c)?top[j-1]-top[j]:
@@ -166,8 +187,9 @@ public class BasisFunction {
 				t--;
 				if((field[t][j]==0) != (field[t+1][j]==0)) colTrans++;
 				if(field[t][j]==0) coveredGaps++;
-				if((j==0||field[t][j-1]==0)!=(field[t][j]==0)) rowTrans++;
+				if((j==0||field[t][j-1]!=0)!=(field[t][j]!=0)) rowTrans++;
 				else {
+					if(field[t][j]==currentTurn) currentPieceCells++;
 					totalBlocks ++;
 				}
 			}
@@ -186,6 +208,7 @@ public class BasisFunction {
 		vals[ROW_TRANS] = rowTrans;
 		vals[MAX_MIN_DIFF] = maxHeight-minHeight;
 		vals[COL_STD_DEV] = (totalHeightSquared - total*vals[AVG_HEIGHT])/(double)(State.COLS-1);
+		vals[ERODED_PIECE_CELLS] = 4 - currentPieceCells;
 		//System.out.println(colTrans);
 	}
 
