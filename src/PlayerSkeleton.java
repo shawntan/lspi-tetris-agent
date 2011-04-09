@@ -13,7 +13,8 @@ public class PlayerSkeleton {
 
 	private double[] feature = new double[BasisFunction.FEATURE_COUNT];
 	private double[] past = null;
-	private BasisFunction bs = new BasisFunction();;
+	protected BasisFunction bs = new BasisFunction();
+	protected boolean learns = false;
 
 
 	public int pickMove(State s, int[][] legalMoves) {
@@ -22,10 +23,11 @@ public class PlayerSkeleton {
 		fs.resetToCurrentState(s); //set the state to the current to prepare to simulate next move.
 		int maxMove = pickBestMove(s, legalMoves, feature);  //pick best move returns the highest scoring weighted features
 		fs.makeMove(maxMove);//simulate next step
-
-		if(past == null) past = new double[BasisFunction.FEATURE_COUNT]; 
-		else {
-			bs.updateMatrices(s, past, feature); //updates the matrices - adds the current "instance" into its training data
+		if(learns) {
+			if(past == null) past = new double[BasisFunction.FEATURE_COUNT]; 
+			else {
+				bs.updateMatrices(s, past, feature); //updates the matrices - adds the current "instance" into its training data
+			}
 		}
 		double[] tmp = feature;		//swap the past and present around - reuse, reduce and recycle arrays.:)
 		feature = past;
@@ -60,12 +62,12 @@ public class PlayerSkeleton {
 		while(m != init){
 			fs.makeMove(m);
 			//if(!fs.hasLost()) {
-			double[] f = bs.getFeatureArray(s, fs);
+			double[] f = bs.getFeatureArray(s, fs,legalMoves[m]);
 			score = score(f);// + minMoveScores(fs,s2,maxScore)/State.N_PIECES;
 			if(maxScore < score) {
 				maxScore = score;
 				maxMove = m;
-				System.arraycopy(f,0,feature,0,f.length);
+				if(learns) System.arraycopy(f,0,feature,0,f.length);
 			}
 			//}
 			fs.resetToCurrentState(s);
@@ -73,6 +75,7 @@ public class PlayerSkeleton {
 		}
 		return maxMove;
 	}
+	/*
 	public double minMoveScores(FutureState s1,FutureState s2,double maxScore){
 		double minScore = Double.MAX_VALUE;
 		for(int p=0;p<State.N_PIECES;p++){
@@ -83,7 +86,7 @@ public class PlayerSkeleton {
 				s2.resetToCurrentState(s1);
 				s2.setNextPiece(p);
 				s2.makeMove(i);
-				double[] f = bs.getFeatureArray(s1, s2);
+				double[] f = bs.getFeatureArray(s1, s2,legla);
 				double score = score(f);
 				
 				bestScore = Math.max(score, bestScore);
@@ -95,7 +98,7 @@ public class PlayerSkeleton {
 		
 		//System.out.println("\t\t"+worsePiece);
 		return minScore;
-	}
+	}*/
 
 	private double score(double[] features){
 		//System.out.println(Arrays.toString(features));
