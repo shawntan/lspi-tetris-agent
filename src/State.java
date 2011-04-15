@@ -163,16 +163,9 @@ public class State {
 		nextPiece = randomPiece();
 
 	}
-	/*
-	private static int[] sequence = new int[] {4,5,4,5,4,5,4,5,4,4,5,4,5};
-	private static int p = 0;
-	*/
+	
 	//random integer, returns 0-6
 	private int randomPiece() {
-		/*
-		p = (p+1)%sequence.length;
-		return sequence[p];
-		*/
 		return (int)(Math.random()*N_PIECES);
 	}
 	

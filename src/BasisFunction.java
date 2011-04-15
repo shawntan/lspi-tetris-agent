@@ -17,25 +17,25 @@ public class BasisFunction {
 	 * 
 	 */
 	private static int count = 0;	
-	final private static int DIFF_ROWS_COMPLETED			= count++;	
+	final private static int DIFF_ROWS_COMPLETED			= count++;	//(LSPI paper)
 	final private static int AVG_HEIGHT						= count++;	//average height
-	final private static int DIFF_AVG_HEIGHT				= count++;
-	final private static int MAX_MIN_DIFF					= count++;
-	final private static int SUM_ADJ_DIFF					= count++;
-	final private static int SUM_ADJ_DIFF_SQUARED			= count++;	//(sum of the difference between adjacent columns)^2
-	final private static int COVERED_GAPS					= count++;	//holes in the tetris wall which are inaccessible from the top
-	final private static int DIFF_COVERED_GAPS				= count++;
-	final private static int TOTAL_BLOCKS					= count++;	//total number of blocks in the wall
-	final private static int TOTAL_WELL_DEPTH				= count++;	//total depth of all wells on the tetris wall.
-	final private static int MAX_WELL_DEPTH					= count++;	//maximum well depth
-	final private static int WEIGHTED_WELL_DEPTH			= count++;	//the deeper the well is, the heavier the "weightage".
-	final private static int COL_TRANS						= count++;
-	final private static int ROW_TRANS						= count++;
-	final private static int LANDING_HEIGHT					= count++;
-	final private static int COL_STD_DEV					= count++;
-	final private static int CENTER_DEV						= count++;
-	final private static int ERODED_PIECE_CELLS				= count++;
-	final private static int WEIGHTED_ERODED_PIECE_CELLS	= count++;
+	final private static int DIFF_AVG_HEIGHT				= count++;	//(LSPI paper)
+	final private static int MAX_MIN_DIFF					= count++;	//(Novel)
+	final private static int SUM_ADJ_DIFF					= count++;	//(Handout)
+	final private static int SUM_ADJ_DIFF_SQUARED			= count++;	//(Novel)(sum of the difference between adjacent columns)^2
+	final private static int COVERED_GAPS					= count++;	//(PD)holes in the tetris wall which are inaccessible from the top
+	final private static int DIFF_COVERED_GAPS				= count++;	//(Novel)
+	final private static int TOTAL_BLOCKS					= count++;	//(CF)total number of blocks in the wall
+	final private static int TOTAL_WELL_DEPTH				= count++;	//(PD)total depth of all wells on the tetris wall.
+	final private static int MAX_WELL_DEPTH					= count++;	//(Novel)maximum well depth
+	final private static int WEIGHTED_WELL_DEPTH			= count++;	//(CF)the deeper the well is, the heavier the "weightage".
+	final private static int COL_TRANS						= count++;	//(PD)
+	final private static int ROW_TRANS						= count++;	//(PD)
+	final private static int LANDING_HEIGHT					= count++;	//(PD)
+	final private static int COL_STD_DEV					= count++;	//(Novel)
+	final private static int CENTER_DEV						= count++;	//(PD) priority value used to break tie in PD
+	final private static int ERODED_PIECE_CELLS				= count++;	//Intemediary step for WEIGHTED_ERODED_PIECE_CELLS
+	final private static int WEIGHTED_ERODED_PIECE_CELLS	= count++;	//(PD)
 
 	final public static int FEATURE_COUNT = count;
 
@@ -196,8 +196,6 @@ Average of 5: 1 mil
 		
 	}
 
-
-
 	private double[] features = new double[FEATURE_COUNT]; 
 	private double[] past = new double[FEATURE_COUNT];
 
@@ -237,11 +235,12 @@ Average of 5: 1 mil
 			if(field[i][State.COLS-1]==0)rowTrans++;
 			for(int j=0;j<State.COLS;j++){
 				if(j>0 &&((field[i][j]==0)!=(field[i][j-1]==0)))	rowTrans++;
-				if((field[i][j]==0)!=(field[i+1][j]==0))	colTrans++;
-				if(i<top[j] && field[i][j]==0) 				coveredGaps++; 
-				if(field[i][j]!=0) 							totalBlocks++;
-				if(field[i][j]==turnNo)						currentPieceCells++;
-				if(i==0 && field[i][j]==0)	colTrans++; 
+				if((field[i][j]==0)!=(field[i+1][j]==0))			colTrans++;
+				
+				if(i<top[j] && field[i][j]==0) 						coveredGaps++; 
+				if(field[i][j]!=0) 									totalBlocks++;
+				if(field[i][j]==turnNo)								currentPieceCells++;
+				
 			}
 		}
 		vals[ERODED_PIECE_CELLS] = 4 - currentPieceCells;
@@ -275,8 +274,8 @@ Average of 5: 1 mil
 		for(int j=0;j<State.COLS;j++){ //by column
 			total += top[j];
 			totalHeightSquared += Math.pow(top[j], 2);	
-			diffTotal += (j>0)?top[j-1]-top[j]:0;
-			squaredDiffTotal += (j>0)?Math.pow(top[j-1],2)-Math.pow(top[j],2):0;
+			diffTotal += (j>0)?Math.abs(top[j-1]-top[j]):0;
+			squaredDiffTotal += (j>0)?Math.abs(Math.pow(top[j-1],2)-Math.pow(top[j],2)):0;
 			maxHeight = Math.max(maxHeight,top[j]);
 			minHeight = Math.min(minHeight,top[j]);
 

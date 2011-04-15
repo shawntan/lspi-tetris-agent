@@ -108,13 +108,13 @@ public class PlayerSkeleton {
 			s.draw();
 			s.drawNext(0,0);
 			try {
-				Thread.sleep(30);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			//BasisFunction.computeWeights();
 		}
-
+		System.out.println(s.getRowsCleared());
 	}
 
 }
