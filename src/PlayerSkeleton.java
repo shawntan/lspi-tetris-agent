@@ -16,6 +16,7 @@ public class PlayerSkeleton {
 	protected BasisFunction bs = new BasisFunction();
 	protected boolean learns = false;
 
+	int count = 0;
 
 	public int pickMove(State s, int[][] legalMoves) {
 		if(fs==null) fs = new FutureState();
@@ -32,7 +33,8 @@ public class PlayerSkeleton {
 		double[] tmp = feature;		//swap the past and present around - reuse, reduce and recycle arrays.:)
 		feature = past;
 		past = tmp;
-
+		count++;
+		//if(count%1000==0) System.out.println(Arrays.toString(test)); 
 		return maxMove;
 	}
 
@@ -55,15 +57,14 @@ public class PlayerSkeleton {
 		double maxScore = Double.NEGATIVE_INFINITY;
 
 		int d = legalMoves.length;
-		int init = (int)(Math.random()*d); //randomise the starting point to look at so that its not always the first highest score
+		int init = (int)(Math.random()*d); //randomise the starting point to look at so that 0 is not always the first highest score
 		int m = (init+1)%d;
 		int maxMove = m ;
-
 		while(m != init){
 			fs.makeMove(m);
 			if(!fs.hasLost()) {
 			double[] f = bs.getFeatureArray(s, fs,legalMoves[m]);
-			score = score(f);// + minMoveScores(fs,s2,maxScore)/State.N_PIECES;
+			score = score(f);
 			if(maxScore < score) {
 				maxScore = score;
 				maxMove = m;
@@ -73,37 +74,16 @@ public class PlayerSkeleton {
 			fs.resetToCurrentState(s);
 			m = (m+1)%d;
 		}
+		
 		return maxMove;
 	}
-	/*
-	public double minMoveScores(FutureState s1,FutureState s2,double maxScore){
-		double minScore = Double.MAX_VALUE;
-		for(int p=0;p<State.N_PIECES;p++){
-			s2.setNextPiece(p);
-			int legalMoves = s2.legalMoves().length;
-			double bestScore = 0;
-			for(int i=0;i<legalMoves;i++) {
-				s2.resetToCurrentState(s1);
-				s2.setNextPiece(p);
-				s2.makeMove(i);
-				double[] f = bs.getFeatureArray(s1, s2,legla);
-				double score = score(f);
-				
-				bestScore = Math.max(score, bestScore);
-				if(bestScore > minScore) break;
-			}
-			minScore = Math.min(bestScore, minScore);
-			if(minScore < maxScore) break;
-		}
-		
-		//System.out.println("\t\t"+worsePiece);
-		return minScore;
-	}*/
 
 	private double score(double[] features){
-		//System.out.println(Arrays.toString(features));
 		double total=0;
-		for(int i=0;i<features.length;i++) total+=features[i]*bs.weight[i];
+		for(int i=0;i<features.length;i++) {
+			double score = features[i] * bs.weight[i];
+			total+=score;
+		}
 		return total;
 	}
 
@@ -129,14 +109,13 @@ public class PlayerSkeleton {
 			s.draw();
 			s.drawNext(0,0);
 			try {
-				Thread.sleep(30);
+				Thread.sleep(100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 			//BasisFunction.computeWeights();
 		}
-		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
-
+		System.out.println(s.getRowsCleared());
 	}
 
 }
