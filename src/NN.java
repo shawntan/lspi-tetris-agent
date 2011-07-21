@@ -1,151 +1,145 @@
+import java.util.Arrays;
+
 
 public class NN {
-	final private static float ALPHA = 1;
-	
-	private float neurons[][];
-	private float deltas[][];
-	private float weights[][][];
-	private float out[];
+	final private static double ALPHA = 0.1;
+
+
+	private int layers[][];
+	private double neurons[];
+	private double deltas[];
+	private double weights[][];
+	private boolean synapse[][];
+
 	/**
-	 * i represents the layer index, j represents the neuron within that layer.
+	 * [code]i[/code] represents the layer index, j represents the neuron within that layer.
 	 * weights[i][j] represents the weights of the previous layer going _into_ neuron i,j.
 	 * @param nodesPerLayer
 	 */
 	public NN(int...nodesPerLayer){
-		this.neurons = new float[nodesPerLayer.length][];
-		this.deltas =  new float[nodesPerLayer.length][];
-		this.weights = new float[nodesPerLayer.length][][];
-		
-		for(int i=0;i<nodesPerLayer.length;i++)	{
-			neurons[i] = new float[nodesPerLayer[i]];
-			deltas[i]  = new float[nodesPerLayer[i]];
-			weights[i] = new float[nodesPerLayer[i]][];
-			
-			if(i>0) for(int j=0;j<neurons[i].length;j++) {
-				weights[i][j] = new float[neurons[i-1].length];
-				for(int k=0;k<weights[i][j].length;k++)
-					weights[i][j][k] = 0;
+		int neuronCount = 1;
+		this.layers = new int[nodesPerLayer.length][];
+		for(int l=0;l<nodesPerLayer.length;l++) {
+			layers[l] = new int[nodesPerLayer[l]];
+			for(int i=0;i<layers[l].length;i++) layers[l][i] = neuronCount++;
+		}
+		this.neurons = new double[neuronCount];
+		this.deltas  = new double[neuronCount];
+		this.weights = new double[neuronCount][neuronCount];
+		this.synapse = new boolean[neuronCount][neuronCount];
+		for(int l=1;l<layers.length;l++){
+			for(int n=0;n<layers[l].length;n++)	{
+				synapse[0][layers[l][n]] = false;
+				weights[0][layers[l][n]] = 0;
+				for(int i=0;i<layers[l-1].length;i++) {
+					synapse[layers[l-1][i]][layers[l][n]] = true;
+					weights[layers[l-1][i]][layers[l][n]] = 1;
+				}
 			}
 		}
-		this.out = neurons[neurons.length-1];
+
+		//this is the bias neuron.
+		this.neurons[0] = 1;
+		Matrix.printField(weights);
 	}
-	
-	private float calculateNeuron(int i, int j){
-		return logistic(dot(neurons[i-1],weights[i][j]));
+
+	private double calculateNeuron(int j){
+		double s=0;
+		for(int i=0;i<neurons.length;i++){
+			s += (synapse[i][j])?neurons[i]*weights[i][j]:0;
+		}
+		return sigmoid(s);
 	}
-	
+
 	private void forwardprop(){
-		for(int i=1;i<neurons.length;i++)
-			for(int j=0;j<neurons[i].length;j++)
-				neurons[i][j] = calculateNeuron(i, j);
+		for(int i=layers[1][0];i<neurons.length;i++)
+			neurons[i] = calculateNeuron(i);
 	}
-	
-	public float[] classify(float...input){
-		this.neurons[0] = input;
+
+	public double[] classify(double...input){
+		System.arraycopy(input, 0, neurons, 1, input.length);
 		forwardprop();
-		return this.out;
+		double res[];
+		System.arraycopy(
+				neurons,
+				layers[layers.length-1][0],
+				res = new double[layers[layers.length-1].length],
+				0,
+				layers[layers.length-1].length
+				);
+		return res;
 	}
 	/**
 	 * Uses neurons[][] to hold delta values.
 	 * @param ans
 	 */
-	private void backprop(float[] ans) {
+	private void backprop(double[] ans) {
 		/**
 		 * Find delta for output
 		 */
-		for(int i=0;i<ans.length;i++){
-		/**
-		 *  |-- output layer delta --|	 |-derivative-| |----diff-----|
-		 */
-			deltas[deltas.length-1][i] = (out[i]*(1-out[i]))*(ans[i]-out[i]);
-			System.out.println("Output delta: "+deltas[deltas.length-1][i]);
+		for(int i=0;i<layers[layers.length-1].length;i++){
+			int j = layers[layers.length-1][i];
+			/**
+			 *      	|------derivative------| |------diff-------|
+			 */
+			deltas[j] = differential(neurons[j])*(ans[i]-neurons[j]);
+			System.out.println("Output delta: "+deltas[j]);
 		}
+		System.out.println();
 		/**
 		 * Assigning deltas
 		 */
-		for(int l=deltas.length-2;l>0;l--){
-			for(int n=0;n<deltas[l].length;n++){
-				float s = 0;
-				for(int i=0;i<deltas[l+1].length;i++)
-					s += deltas[l+1][i]*weights[l+1][i][n];
-				deltas[l][n] = neurons[l][n]*(1-neurons[l][n])*s;
+		for(int l=layers.length-2;l>0;l--) {
+			for(int n=0;n<layers[l].length;n++) {
+				int i = layers[l][n];
+				double s = 0;
+				for(int j=0;j<deltas.length;j++) s += (synapse[i][j])?weights[i][j]*deltas[j]:0;
+				deltas[i] = differential(neurons[i])*s;
 			}
 		}
 		/**
 		 * Adjusting weights
 		 */
-		for(int l=1;l<neurons.length;l++){
-			System.out.println("Layer "+l);
-			for(int n=0;n<neurons[l].length;n++){
-				System.out.println("\tNeuron "+n);
-				for(int i=0;i<weights[l][n].length;i++){
-					weights[l][n][i] += ALPHA * neurons[l-1][i] * deltas[l][n];
-					System.out.println("\t\tFrom neuron "+i+": "+weights[l][n][i]);
-				}
-			}
-		}
+		for(int i=0;i<neurons.length;i++)
+			for(int j=0;j<neurons.length;j++)
+				weights[i][j] += (synapse[i][j])?ALPHA*neurons[i]*deltas[j]:0;
 	}
-	public void learn(float[] d,float...ans){
-		this.neurons[0] = d;
+	public void learn(double[] d,double...ans){
 		forwardprop();
 		backprop(ans);
-		for(int l=neurons.length-1;l>0;l--){
-			for(int n=0;n<neurons[l].length;n++){
-				neurons[l][n] = 0;
-				deltas[l][n]  = 0;
-			}
+		for(int i=1;i<neurons.length;i++){
+			neurons[i] = 0;
+			deltas[i]  = 0;
 		}
 	}
 
-	
-	public static float logistic(float z) {
-		return 1/(1+(float)Math.pow((double)Math.E,(double)-1*z));
+
+	public static double sigmoid(double z) {
+		return 1/(1 + Math.exp(-z));
 	}
-	
-	public static float logderivative(float z) {
-		return logistic(z)*(1-logistic(z));
+
+	public static double differential(double g){
+		return g * (1 - g);
 	}
-	public static float gprime(float gval){
-		return gval*(1-gval);
-	}
-	public static float dot(float[] w, float[] x) {
-		if (w.length != x.length)
-			throw new RuntimeException("Cannot dot. Different length");
-		float r=0;
-		for(int i=0;i<w.length;i++)	r += w[i]*x[i];
-		return r;
-	}
-	public static void minus(float[] w, float[] x){
-		if (w.length != x.length)
-			throw new RuntimeException("Cannot dot. Different length");
-		for(int i=0;i<w.length;i++)	w[i]=  w[i]-x[i];
-	}
+
 	public static void main(String[] args) {
-		NN n = new NN(3,3,3,1);
+		NN n = new NN(2,2,1);
 		
-		n.learn(new float[] {0,0,0}, 0);
-		n.learn(new float[] {0,1,1}, 0);
-		n.learn(new float[] {0,1,1}, 0);
-		n.learn(new float[] {0,1,1}, 0);
-		n.learn(new float[] {1,1,0}, 0);
-		n.learn(new float[] {1,0,1}, 0);
-		n.learn(new float[] {1,1,1}, 0);
-		n.learn(new float[] {1,1,1}, 0);
-		n.learn(new float[] {1,1,1}, 0);
-		n.learn(new float[] {1,0,0}, 1);
-		n.learn(new float[] {0,1,0}, 1);
-		n.learn(new float[] {0,0,1}, 1);
-		n.learn(new float[] {1,0,0}, 1);
-		n.learn(new float[] {0,1,0}, 1);
-		n.learn(new float[] {0,0,1}, 1);
-		n.learn(new float[] {1,0,0}, 1);
-		n.learn(new float[] {0,1,0}, 1);
-		n.learn(new float[] {0,0,1}, 1);
-		
-		System.out.println(n.classify(1,0,0)[0]);
-		System.out.println(n.classify(0,1,0)[0]);
-		System.out.println(n.classify(1,1,1)[0]);
+		for(int i=0;i<2;i++){
+			n.learn(new double[] {0,0}, 0);
+			n.learn(new double[] {1,1}, 0);
+			n.learn(new double[] {0,1}, 1);
+			n.learn(new double[] {1,0}, 1);
+		}
+		System.out.println(Arrays.toString(n.neurons));
+		Matrix.printField(n.weights);
+		n.classify(1,1);
+		System.out.println(Arrays.toString(n.neurons));
+		System.out.println(n.classify(0,0)[0]);
+		System.out.println(n.classify(1,1)[0]);
+		System.out.println(n.classify(0,1)[0]);
+		System.out.println(n.classify(1,0)[0]);
 	}
-	
-	
+
+
 }

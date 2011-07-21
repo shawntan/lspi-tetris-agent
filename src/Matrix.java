@@ -1,4 +1,5 @@
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Arrays;
 
 
@@ -126,10 +127,13 @@ public class Matrix {
 	}
 	
 	
-	private static void printField(double[][] field){
+	public static void printField(double[][] field){
+		NumberFormat  f =NumberFormat.getInstance();
+		f.setMaximumFractionDigits(1);
+		f.setMinimumFractionDigits(1);
 		for(int i=0;i<field.length;i++) {
 			for(int j=0;j<field[0].length;j++){
-				System.out.print(" "+field[i][j]);
+				System.out.print(" "+f.format(field[i][j]));
 			}
 			System.out.println();
 		}
