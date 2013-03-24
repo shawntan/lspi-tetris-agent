@@ -1,4 +1,3 @@
-import java.util.LinkedList;
 
 public class BasisFunction {
 
@@ -17,6 +16,7 @@ public class BasisFunction {
 	 * 
 	 */
 	private static int count = 0;
+
 	final private static int MAX_HEIGHT						= count++;
 	final private static int COVERED_GAPS					= count++;	//(PD)holes in the tetris wall which are inaccessible from the top
 	final private static int DIFF_ROWS_COMPLETED			= count++;	//(LSPI paper)
@@ -24,20 +24,18 @@ public class BasisFunction {
 	final private static int MAX_WELL_DEPTH					= count++;	//(Novel)maximum well depth
 	final private static int TOTAL_WELL_DEPTH				= count++;	//(PD)total depth of all wells on the tetris wall.
 	final private static int TOTAL_BLOCKS					= count++;	//(CF)total number of blocks in the wall
-	//final private static int COL_TRANS						= count++;	//(PD)
-	//final private static int ROW_TRANS						= count++;	//(PD)
-	//final private static int AVG_HEIGHT						= count++;	//average height
+	final private static int COL_TRANS						= count++;	//(PD)
+	final private static int ROW_TRANS						= count++;	//(PD)
 	final private static int DIFF_AVG_HEIGHT				= count++;	//(LSPI paper)
 	final private static int SUM_ADJ_DIFF					= count++;	//(Handout)
-	//final private static int SUM_ADJ_DIFF_SQUARED			= count++;	//(Novel)(sum of the difference between adjacent columns)^2
-	//final private static int DIFF_COVERED_GAPS				= count++;	//(Novel)		
+	final private static int DIFF_COVERED_GAPS				= count++;	//(Novel)		
 	final private static int WEIGHTED_WELL_DEPTH			= count++;	//(CF)the deeper the well is, the heavier the "weightage".
-	//final private static int LANDING_HEIGHT					= count++;	//(PD)
+	final private static int LANDING_HEIGHT					= count++;	//(PD)
 	final private static int COL_STD_DEV					= count++;	//(Novel)
-	//final private static int CENTER_DEV						= count++;	//(PD) priority value used to break tie in PD
-	//final private static int ERODED_PIECE_CELLS				= count++;	//Intemediary step for WEIGHTED_ERODED_PIECE_CELLS
-	//final private static int WEIGHTED_ERODED_PIECE_CELLS	= count++;	//(PD)
-
+//	final private static int ERODED_PIECE_CELLS				= count++;	//Intemediary step for WEIGHTED_ERODED_PIECE_CELLS
+//	final private static int WEIGHTED_ERODED_PIECE_CELLS	= count++;	//(PD)
+//	final private static int CENTER_DEV						= count++;	//(PD) priority value used to break tie in PD
+//	final private static int SUM_ADJ_DIFF_SQUARED			= count++;	//(Novel)(sum of the difference between adjacent columns)^2
 	final public static int FEATURE_COUNT = count;
 
 
@@ -54,155 +52,33 @@ public class BasisFunction {
 	double[][] A = new double[FEATURE_COUNT][FEATURE_COUNT];
 	double[][] b = new double[FEATURE_COUNT][1]; 
 	double[] weight = new double[FEATURE_COUNT];
-
-
-	{
-
-/*		weight[LANDING_HEIGHT] = -1;
-		weight[ROW_TRANS] = -1;
-		weight[COL_TRANS] = -1;
-		weight[COVERED_GAPS] = -4;
-		weight[TOTAL_WELL_DEPTH] = -1;
-		weight[DIFF_ROWS_COMPLETED] = 1;*/
-		weight = new double[] {
-				-0.1219428355126222,
-				-0.4307078053620721,
-				18.848787457399478,
-				0.14066111835982328,
-				0.0393278023077861,
-				0.018887397574187854,
-				0.07465367871983619,
-				//0.009090134897774368,
-				//-0.027913676231492872,
-				0.14791516966043117,
-				//17.84445105555927,
-				//-0.0014242524649962724,
-				-0.0012167566754713527,
-				//-1.7864933067171056,
-				-0.07530439013947489,
-				//-0.003293971487094186,
-				-0.09463081686705198
-		};
-	}	
-		/*
- 	23.74474417053898,
-	1.2024033183171208,
-	22.74032086120765,
-	0.021145298053612593,
-	-1.486942609572223E-4,
-	1.0445304501815667E-4,
-	-0.614538615850557,
-	-2.2652395193741364,
-	-0.03102014474216557,
-	0.018737764423348156,
-	0.04928081052583025,
-	-0.07107835720443426,
-	0.017148581644446166,
-	-0.033105218224697856,
-	-0.027968541588988448,
-	-0.08716907387981934,
-	-2.509824430697765E-4,
-	-2.504475618057079E-5,
-	-1.4530678881998514E-6
 	
-	 19.38657887363557
- 1.0363325655090119
- 18.384335122536275
- 0.036817213703497616
- 8.276605200598446E-4
- -9.427837820890066E-5
- -0.6452955446655471
- -1.8330123643710923
- -0.018928605061267405
- 0.02103671138821449
- 0.05857736152626049
- -0.08027420951261242
- 0.01977545879033711
- -0.03740666459819019
- -0.00449495924275224
- -0.10379041405947873
- -3.238881705854106E-4
- -3.8139762119788204E-4
- 0.0015247893524023282	
- 
-Max of 3 MILLION!!!
-  19.785722725493283
- 20.434023617877553
- 18.783517510442884
- 0.026979339172688164
- 1.8513103789886357E-4
- -2.538411794208279E-6
- -2.523664432529036
- -1.871700407275115
- -1.9573364952495529
- 0.0183510750178004
- 0.052154965374291165
- -0.07496741347861241
- -4.4338392815110837E-4
- -0.03596361639341536
- -0.0039219472620906515
- -0.09588280476157182
- -2.8868170566731885E-4
- -5.545583985700238E-4
- 8.661120069768446E-4
 
-Average of 5: 1 mil
-  20.589898787386733
- 3.692363883642943
- 19.58782311455419
- 0.023268588108206333
- 3.5407575764002415E-4
- -6.400299946394538E-6
- -0.7971899131999098
- -1.950379454759538
- -0.28308331330672465
- 0.01925696095449016
- 0.050355974911090666
- -0.0735425646943785
- -0.028509449641577412
- -0.03702501818692896
- -0.003990954296708827
- -0.0883412955239141
- -4.104209313557069E-4
- -7.338941241529237E-4
- 9.004628225105676E-4
+	
+	{
+		weight = new double[] {
+				-0.180164448251231,
+				-0.4000820857296077,
+				24.77849828060256,
+				0.2064192581442733,
+				0.045032898990512216,
+				0.021320544290795714,
+				0.08917677230797055,
+				0.00819042152617841,
+				-0.03390773883019901,
+				23.781352321845173,
+				-0.010694297443763184,
+				-2.3906661321409253,
+				-0.08863636063644799,
+				-0.005240305848723416,
+				-0.1524174444288417,
+//				-6.525668167122544E-4,
+//				-8.272234730529223E-4
+			};
 
- 20.07482336367446
- 2.504107165297028
- 19.072732065292442
- 0.024889433608669784
- 2.0548837887730985E-4
- 4.49087596401086E-6
- -0.7035532536673019
- -1.8997079669477919
- -0.16419005900025146
- 0.018896366295955338
- 0.05076552158059042
- -0.07417944589739581
- -0.012147833155578873
- -0.03597940128825008
- -0.0038972989874879694
- -0.09229158816408412
- -3.4512876575453324E-4
- -6.149474578748582E-4
- 8.745117810322921E-4
-
-		 */
-		/*Pierre Dellacherie*/
-/*
-		weight[LANDING_HEIGHT] = -1;
-		weight[ROW_TRANS] = -1;
-		weight[COL_TRANS] = -1;
-		weight[COVERED_GAPS] = -4;
-		weight[TOTAL_WELL_DEPTH] = -1;
-		weight[WEIGHTED_ERODED_PIECE_CELLS] = 1;
-		//weight[CENTER_DEV] = 0.5;
-		 * 
-		 */
-
-
+	}
 	private double[] features = new double[FEATURE_COUNT]; 
-	private double[] past = new double[FEATURE_COUNT];
+	private double[] past     = new double[FEATURE_COUNT];
 
 	/**
 	 * Function to get feature array for current state.
@@ -216,16 +92,16 @@ Average of 5: 1 mil
 		int currentPiece = s.getNextPiece();
 		heightFeatures(s, past,currentPiece,currentTurn);
 		heightFeatures(fs, features,currentPiece,currentTurn);
-		features[DIFF_AVG_HEIGHT] = 	features[DIFF_AVG_HEIGHT] - past[DIFF_AVG_HEIGHT];
-		//features[DIFF_COVERED_GAPS] =	features[COVERED_GAPS]-past[COVERED_GAPS];
+		features[DIFF_AVG_HEIGHT]   = 	features[DIFF_AVG_HEIGHT] - past[DIFF_AVG_HEIGHT];
+		features[DIFF_COVERED_GAPS] =	features[COVERED_GAPS]-past[COVERED_GAPS];
 
 		//features[DIFF_MAX_HEIGHT] = 	features[MAX_HEIGHT]-past[MAX_HEIGHT];
 		//features[DIFF_SUM_ADJ_DIFF] = 	features[SUM_ADJ_DIFF]-past[SUM_ADJ_DIFF];
 		//features[DIFF_TOTAL_WELL_DEPTH] =	features[TOTAL_WELL_DEPTH]-past[TOTAL_WELL_DEPTH];
 
 		//features[CENTER_DEV] = Math.abs(move[State.SLOT] - State.COLS/2.0);
-		//features[WEIGHTED_ERODED_PIECE_CELLS] = (fs.getRowsCleared()- s.getRowsCleared())*features[ERODED_PIECE_CELLS];
-		//features[LANDING_HEIGHT] = s.getTop()[move[State.SLOT]];
+//		features[WEIGHTED_ERODED_PIECE_CELLS] = (fs.getRowsCleared()- s.getRowsCleared())*features[ERODED_PIECE_CELLS];
+		features[LANDING_HEIGHT] = s.getTop()[move[State.SLOT]];
 		return features;
 	}
 
@@ -246,9 +122,9 @@ Average of 5: 1 mil
 				if(field[i][j]==turnNo)								currentPieceCells++;
 			}
 		}
-		//vals[ERODED_PIECE_CELLS] = 4 - currentPieceCells;
-		//vals[COL_TRANS] = colTrans;
-		//vals[ROW_TRANS] = rowTrans;
+//		vals[ERODED_PIECE_CELLS] = 4 - currentPieceCells;
+		vals[COL_TRANS] = colTrans;
+		vals[ROW_TRANS] = rowTrans;
 		vals[COVERED_GAPS] = coveredGaps;
 		vals[TOTAL_BLOCKS] = totalBlocks;
 	}
@@ -334,8 +210,6 @@ Average of 5: 1 mil
 		Matrix.sum(A,changeToA);
 		Matrix.multiply(features[DIFF_ROWS_COMPLETED], mFeatures);
 		Matrix.sum(b,mFeatures);
-		LinkedList<String> test = new LinkedList<String>();
-
 	}
 
 	/**
@@ -349,7 +223,7 @@ Average of 5: 1 mil
 	public void computeWeights() {
 		if(Matrix.premultiplyInverse(A, b,mWeight, tmpA)==null) return;;
 		Matrix.colToArray(mWeight, weight);
-		printField(mWeight);
+		//printField(mWeight);
 	}
 
 

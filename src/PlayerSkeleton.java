@@ -1,5 +1,4 @@
 import java.text.DecimalFormat;
-import java.util.Arrays;
 
 
 
@@ -109,7 +108,7 @@ public class PlayerSkeleton {
 			s.draw();
 			s.drawNext(0,0);
 			try {
-				Thread.sleep(100);
+				Thread.sleep(10);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

@@ -6,7 +6,7 @@ import java.io.Writer;
 import java.util.Arrays;
 
 public class Trainer {
-	private static int ROUNDS = 5;
+	private static int ROUNDS = 30;
 	private static int SPIN_STEP_DELAY = 2500;
 	
 	public static void main(String[] args) throws IOException {
@@ -24,8 +24,9 @@ public class Trainer {
 		// keep on training!
 		while(true) {
 			int prevLength = 0;
+			
 			System.arraycopy(weights, 0,defWeights, 0, BasisFunction.FEATURE_COUNT);
-			System.out.println("Training for "+ROUNDS+" rounds...");
+			System.out.println("Training for " + ROUNDS + " rounds...");
 			double totalTrainingScore = 0;
 			double totalTSSquared = 0;
 			for(int i=0;i<ROUNDS;i++){
@@ -54,11 +55,16 @@ public class Trainer {
 			System.out.print(" s.d.: ");
 			System.out.print(sd);
 			
+			
 			System.out.println();
 			
 			if(avg>bestAvg) bestAvg = avg;
 			
 			bf.computeWeights();
+			for(int i=0;i<weights.length;i++) {
+				weights[i] = 0.1 * weights[i] + 0.9 * defWeights[i];
+				weights[i] = 0.001 * (weights[i]*(0.5 - Math.random()));
+			}
 			//System.out.println("Weights:"+Arrays.toString(bf.weight));
 			System.out.println("Testing for "+ROUNDS+" rounds...");
 			double totalTestingScore = 0;
@@ -88,9 +94,11 @@ public class Trainer {
 			if(testAvg > bestAvg) {
 				bestAvg = testAvg;
 				System.out.println("Test average better than best ever training average, swapping weights...");
+			
 				System.arraycopy(defWeights, 0,weights, 0, BasisFunction.FEATURE_COUNT);
 				doNewWeightActions(weights);
 			}
+			
 		}
 	}
 	
@@ -101,6 +109,7 @@ public class Trainer {
 			System.out.print(weights[i]);
 		}
 		System.out.println();
+
 	}
 	
 	private static char[] rotating = new char[] {'-','\\','|','/'};
